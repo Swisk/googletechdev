@@ -1,15 +1,18 @@
 import random
 import unittest
 
-#TODO need to create exception handling if the n and m are not valid
+
 
 class Minefield:
 
     def __init__(self, n, m):
 
         #create minefield
+        assert (m < n*n), "Too many mines."
         self.mine_array = [[Tile() for x in range(n)] for y in range(n)]
         self.size = n
+
+        
         self.unopened = n * n - m
         self.end = False
 
@@ -35,6 +38,10 @@ class Minefield:
 
                 self.mine_array[x][y].set_neighbours(mines)
 
+    #test if minefield is over
+    def get_end(self):
+        return self.end
+
     #get neighbours
     def get_neighbours(self, x, y):
 
@@ -58,6 +65,7 @@ class Minefield:
         elif self.mine_array[x][y].is_open():
             return "already opened"
         elif self.mine_array[x][y].is_mined():
+            self.mine_array[x][y].open()
             self.end = True
             return "mined"
         else:
@@ -80,7 +88,9 @@ class Minefield:
             row = []
             for y in range(self.size):
                 if self.mine_array[x][y].is_open():
-                    if self.mine_array[x][y].num_neighbours() > 0:
+                    if self.mine_array[x][y].is_mined():
+                        row.append("*")
+                    elif self.mine_array[x][y].num_neighbours() > 0:
                         row.append( self.mine_array[x][y].num_neighbours())
                     else:
                         row.append(" ")
@@ -122,6 +132,11 @@ class TestMinefield(unittest.TestCase):
     def setUp(self):
         random.seed(1234)
         self.Minefield = Minefield(5, 5)
+        
+
+    @unittest.expectedFailure
+    def test_fail(self):
+        Minefield(5, 50)
 
     def testRender(self):
         self.assertEqual(self.Minefield.render(), [['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-']])
@@ -132,12 +147,15 @@ class TestMinefield(unittest.TestCase):
         self.assertEqual(self.Minefield.open(0, 3), "already opened")
 
     def testLose(self):
+        self.assertEqual(self.Minefield.get_end(), False)
         self.assertEqual(self.Minefield.open(0, 0), "mined")
         self.assertEqual(self.Minefield.open(0, 0), "game over")
         self.assertEqual(self.Minefield.open(0, 4), "game over")
         self.assertEqual(self.Minefield.render(), [['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-']])
+        self.assertEqual(self.Minefield.get_end(), True)
 
     def testWin(self):
+        self.assertEqual(self.Minefield.get_end(), False)
         self.Minefield.open(0, 4)
         self.Minefield.open(0, 1)
         self.Minefield.open(1, 0)
@@ -146,6 +164,8 @@ class TestMinefield(unittest.TestCase):
         self.assertEqual(self.Minefield.open(2, 0), "game over")
 
         self.assertEqual(self.Minefield.render(), [['-', 2, '-', 1, ' '], [2, 3, 2, 1, ' '], [2, '-', 1, ' ', ' '], ['-', 3, 1, ' ', ' '], ['-', 2, ' ', ' ', ' ']])
+        self.assertEqual(self.Minefield.get_end(), True)
+
 
 class TestTile(unittest.TestCase):
 
@@ -172,12 +192,12 @@ class TestTile(unittest.TestCase):
 class TestMinesweeper(unittest.TestCase):
 
     def setUp(self):
+        pass
         self.Minesweeper = minesweeper()
     
-    def testDefault(self):
-        pass
 
     def testRender(self):
+        pass
         self.Minesweeper.render()
 
 
@@ -187,11 +207,13 @@ class minesweeper:
 
         while True:
             try:
+                print("")
                 n = input("Size of board? ")
                 m = input("Number of mines? ")
                 n = int(n)
                 m = int(m)
                 self.minefield = Minefield(n, m)
+                
                 break
             except:
                 print("ha ha. Answer the question properly.")
@@ -199,20 +221,56 @@ class minesweeper:
 
         
 
-    def play(self, n, m):
-        pass
+    def play(self):
+
+        self.render()
+
+        while not self.minefield.get_end():
+
+            
+
+            while True:
+                
+                try:
+                    x, y = input("Enter coordinates (row, column) of cell you want to open: ").split(',')
+                    #change to 1 based indexing
+                    x = int(x) - 1
+                    y = int(y) - 1
+                    break
+                except:
+                    print("invalid coordinates")
+
+            result = self.minefield.open(x, y)
+
+            #some handling for different results of opening
+            if result == "game over":
+                #shouldn't appear
+                print("Game has already ended!")
+            elif result == "already opened":
+                print("This tile has already been opened! Choose another tile.")
+            elif result == "mined":
+                print("Oh no! That was a mine! You lose :(")
+            elif result == "win":
+                print("You did it! You opened all the unmined squares! You win.")
+            
+            self.render()
+
 
 
     def render(self):
         
         to_print = self.minefield.render()
         print("")
-        for rows in to_print:
-            print("|", end = "")
+        for i in range(len(to_print) + 1):
+            print(i, end = "|")
+        print("")
+        for i, rows in enumerate(to_print):
+            print(str(i + 1) + "|", end = "")
             for cell in rows:
                 print(cell, end = '|')
             print("")
 
 
 if __name__ == '__main__':
-    unittest.main()
+    #unittest.main()
+    minesweeper().play()
